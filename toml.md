@@ -9,7 +9,8 @@ By Tom Preston-Werner, Pradyun Gedam, et al.
 ## Objectives
 
 TOML aims to be a minimal configuration file format that's easy to read due to
-obvious semantics. TOML is designed to map unambiguously to a hash table. TOML
+obvious semantics. TOML is designed to map unambiguously to a hash table or dictionary 
+(hereafter referred to simply as, table). TOML
 should be easy to parse into data structures in a wide variety of languages.
 
 ## Table of contents
@@ -48,18 +49,18 @@ should be easy to parse into data structures in a wide variety of languages.
 
 ## Comment
 
-A hash symbol marks the rest of the line as a comment, except when inside a
+A hash character symbol marks the rest of the line as a comment, except when inside a
 string.
 
 ```toml
 # This is a full-line comment
 key = "value"  # This is a comment at the end of a line
-another = "# This is not a comment"
+another = "# This is not a comment because it is a string"
 ```
 
 Comments may contain any Unicode code points except the following control codes
 that could cause problems during editing or processing: U+0000, and U+000A to
-U+000D.
+U+000D. In particular, a single comment cannot span multiple lines.
 
 Comments should be used to communicate between the human readers of a file.
 Parsers must not modify keys or values, based on the presence (or contents) of a
@@ -71,7 +72,7 @@ The primary building block of a TOML document is the key/value pair.
 
 Keys are on the left of the equals sign and values are on the right. Whitespace
 is ignored around key names and values. The key, equals sign, and value must be
-on the same line (though some values can be broken over multiple lines).
+on the same line though some values can be broken over multiple lines.
 
 ```toml
 key = "value"
@@ -140,8 +141,8 @@ spaces. Best practice is to use bare keys except when absolutely necessary.
 "⋰∫∬∭⋱" = "value"
 ```
 
-A bare key must be non-empty, but an empty quoted key is allowed (though
-discouraged). You cannot use multi-line strings to define quoted keys.
+While bare keys must be non-empty quoted keys can be empty strings however
+that is discouraged. You cannot use multi-line strings to define quoted keys.
 
 ```toml
 = "no key name"           # INVALID
@@ -151,7 +152,9 @@ discouraged). You cannot use multi-line strings to define quoted keys.
 ```
 
 **Dotted keys** are a sequence of bare or quoted keys joined with a dot. This
-allows for grouping similar properties together:
+allows for easily describing the value of a key as a table by assign values 
+to its keys, in this case `color` and `shape` are the keys of the table
+assigned to `physical`:
 
 ```toml
 name = "Orange"
@@ -179,7 +182,7 @@ In JSON land, that would give you the following structure:
 }
 ```
 
-For details regarding the tables that dotted keys define, refer to the
+For details regarding tables that the dotted keys syntax defines refer to the
 [Table](#user-content-table) section below.
 
 Whitespace around dot-separated parts is ignored. However, best practice is to
@@ -191,7 +194,8 @@ fruit. color = "yellow"     # same as fruit.color
 fruit . flavor = "banana"   # same as fruit.flavor
 ```
 
-Indentation is treated as whitespace and ignored.
+Indentation is treated as whitespace and ignored. In fact, much of the syntax
+is about avoiding indentation without loosing clarity.
 
 Defining a key multiple times is invalid.
 
@@ -213,10 +217,11 @@ As long as a key hasn't been directly defined, you may still write to it and to
 names within it.
 
 ```toml
-# This makes the key "fruit" into a table.
+# This makes the key "fruit" into a table containing the key `apple` which
+# itself is also a table containing the key `smooth` holding the value, `true`
 fruit.apple.smooth = true
 
-# So then you can add to the table "fruit" like so:
+# So then you can add to the table "fruit" another key like so:
 fruit.orange = 2
 ```
 
@@ -224,11 +229,8 @@ fruit.orange = 2
 # THE FOLLOWING IS INVALID
 
 # This defines the value of fruit.apple to be an integer.
+# however it is already defined above as table
 fruit.apple = 1
-
-# But then this treats fruit.apple like it's a table.
-# You can't turn an integer into a table.
-fruit.apple.smooth = true
 ```
 
 Defining dotted keys out-of-order is discouraged.
@@ -258,8 +260,8 @@ orange.skin = "thick"
 orange.color = "orange"
 ```
 
-Since bare keys can be composed of only ASCII integers, it is possible to write
-dotted keys that look like floats but are 2-part dotted keys. Don't do this
+Since bare keys can be ASCII digits, it is possible to write
+dotted keys that look like floats but are really dotted keys. Don't do this
 unless you have a good reason to (you probably don't).
 
 ```toml
@@ -270,6 +272,12 @@ The above TOML maps to the following JSON.
 
 ```json
 { "3": { "14159": "pi" } }
+```
+
+Note, if you must you can express the above number as string key as follows.
+
+```toml
+"3.14159" = "pi"
 ```
 
 ## String
@@ -523,6 +531,13 @@ invalid_float_2 = 7.
 invalid_float_3 = 3.e+20
 ```
 
+```
+# VALID FLOATS
+invalid_float_1 = 0.7
+invalid_float_2 = 7.0
+invalid_float_3 = 3.0e+20
+```
+
 Similar to integers, you may use underscores to enhance readability. Each
 underscore must be surrounded by at least one digit.
 
@@ -548,7 +563,7 @@ sf6 = -nan # valid, actual encoding is implementation-specific
 
 ## Boolean
 
-Booleans are just the tokens you're used to. Always lowercase.
+Booleans is the words, `true` or `false` in lowercase.
 
 ```toml
 bool1 = true
@@ -561,8 +576,8 @@ To unambiguously represent a specific instant in time, you may use an
 [RFC 3339](https://tools.ietf.org/html/rfc3339) formatted date-time with offset.
 
 ```toml
-odt1 = 1979-05-27T07:32:00Z
-odt2 = 1979-05-27T00:32:00-07:00
+odt1 = 1979-05-27T07:32:00Z  # May 27, 1979 7:32AM Zulu Time Zone (London England)
+odt2 = 1979-05-27T00:32:00-07:00 # May 27, 1979 12:32AM but 7:00 after Zulu Time Zone (Edmonton, Alberta, Canada)
 odt3 = 1979-05-27T00:32:00.999999-07:00
 ```
 
@@ -581,16 +596,15 @@ odt5 = 1979-05-27 07:32Z
 odt6 = 1979-05-27 07:32-07:00
 ```
 
-Millisecond precision is required. Further precision of fractional seconds is
-implementation-specific. If the value contains greater precision than the
-implementation can support, the additional precision must be truncated, not
-rounded.
+Millisecond precision may be specified. Greater precision of fractional seconds is
+implementation-specific. If the value specified is greater that the precision 
+supported the additional precision must be truncated, not rounded.
 
 ## Local Date-Time
 
 If you omit the offset from an [RFC 3339](https://tools.ietf.org/html/rfc3339)
 formatted date-time, it will represent the given date-time without any relation
-to an offset or timezone. It cannot be converted to an instant in time without
+to a timezone. It cannot be converted to an instant in time without
 additional information. Conversion to an instant, if required, is
 implementation-specific.
 
@@ -605,16 +619,15 @@ Seconds may be omitted, in which case `:00` will be assumed.
 ldt3 = 1979-05-27T07:32
 ```
 
-Millisecond precision is required. Further precision of fractional seconds is
-implementation-specific. If the value contains greater precision than the
-implementation can support, the additional precision must be truncated, not
-rounded.
+Millisecond precision may be specified. Greater precision of fractional seconds is
+implementation-specific. If the value specified is greater that the precision 
+supported the additional precision must be truncated, not rounded.
 
 ## Local Date
 
 If you include only the date portion of an
 [RFC 3339](https://tools.ietf.org/html/rfc3339) formatted date-time, it will
-represent that entire day without any relation to an offset or timezone.
+represent that entire day without any relation to a timezone.
 
 ```toml
 ld1 = 1979-05-27
@@ -624,8 +637,7 @@ ld1 = 1979-05-27
 
 If you include only the time portion of an
 [RFC 3339](https://tools.ietf.org/html/rfc3339) formatted date-time, it will
-represent that time of day without any relation to a specific day or any offset
-or timezone.
+represent that time of day without any relation to a specific day or timezone.
 
 ```toml
 lt1 = 07:32:00
@@ -638,10 +650,9 @@ Seconds may be omitted, in which case `:00` will be assumed.
 lt3 = 07:32
 ```
 
-Millisecond precision is required. Further precision of fractional seconds is
-implementation-specific. If the value contains greater precision than the
-implementation can support, the additional precision must be truncated, not
-rounded.
+Millisecond precision may be specified. Greater precision of fractional seconds is
+implementation-specific. If the value specified is greater that the precision 
+supported the additional precision must be truncated, not rounded.
 
 ## Array
 
@@ -657,7 +668,7 @@ nested_mixed_array = [ [ 1, 2 ], ["a", "b", "c"] ]
 string_array = [ "all", 'strings', """are the same""", '''type''' ]
 
 # Mixed-type arrays are allowed
-numbers = [ 0.1, 0.2, 0.5, 1, 2, 5 ]
+numbers-and-stuff = [ 0.1, 0.2, 0.5, 1, 2, 5, "Jack", 7:34:42.9871 ]
 contributors = [
   "Foo Bar <foo@example.com>",
   { name = "Baz Qux", email = "bazqux@example.com", url = "https://example.com/bazqux" }
@@ -680,19 +691,20 @@ integers3 = [
 ]
 ```
 
-## Table
+## Hash Table (Table)
 
-Tables (also known as hash tables or dictionaries) are collections of key/value
+Hash Tables (also known as dictionaries) are collections of key/value
 pairs. They are defined by headers, with square brackets on a line by
-themselves. You can tell headers apart from arrays because arrays are only ever
-values.
+themselves (unlike arrays which also use square brackets but which
+only occur as values being assigned to some key).
 
 ```toml
 [table]
 ```
 
-Under that, and until the next header or EOF, are the key/values of that table.
-Key/value pairs within tables are not guaranteed to be in any specific order.
+Under the header and until the next header or the EOF the key/values pairs 
+occuring belong to this table. Key/value pairs within tables are not guaranteed 
+to preserve their order of definition.
 
 ```toml
 [table-1]
@@ -705,7 +717,9 @@ key2 = 456
 ```
 
 Naming rules for tables are the same as for keys (see definition of
-[Keys](#user-content-keys) above).
+[Keys](#user-content-keys) above). Here, `dog` is a table containing
+`"tater.man"` table which contains `type` table which contains
+`name` holding the string, `"pug"`.
 
 ```toml
 [dog."tater.man"]
@@ -782,7 +796,8 @@ Defining tables out-of-order is discouraged.
 [animal]
 ```
 
-The top-level table, also called the root table, starts at the beginning of the
+A top-level implicit table being the TOML document, also called the root table, 
+starts at the beginning of the
 document and ends just before the first table header (or EOF). Unlike other
 tables, it is nameless and cannot be relocated.
 
@@ -797,10 +812,8 @@ name = "Regina Dogman"
 member_since = 1999-08-04
 ```
 
-Dotted keys create and define a table for each key part before the last one. Any
-such table must have all its key/value pairs defined under the current `[table]`
-header, or in the root table if defined before all headers, or in one inline
-table.
+Dotted keys assignment can be used to create and define before the 
+square bracket table syntax make that impossible. 
 
 ```toml
 fruit.apple.color = "red"
@@ -831,8 +844,9 @@ smooth = true
 
 ## Inline Table
 
-Inline tables provide a more compact syntax for expressing tables. They are
-especially useful for grouped nested data that can otherwise quickly become
+Inline tables are similar to JSON objects in using curly braces to provide a more compact 
+syntax for expressing tables. They are
+especially useful for grouping nested data that would otherwise quickly become
 verbose.
 
 Inline tables are fully defined within curly braces: `{` and `}`. Within the
@@ -860,7 +874,7 @@ contact = {
 }
 ```
 
-The inline tables above are identical to the following standard table
+The inline tables above are identical to the following standard TOML table
 definitions:
 
 ```toml
@@ -905,7 +919,8 @@ type.name = "Nail"
 ## Array of Tables
 
 The last syntax that has not yet been described allows writing arrays of tables.
-These can be expressed by using a header with a name in double brackets. The
+These can be expressed by using a header with a name in double brackets 
+and repeated for each entry. The
 first instance of that header defines the array and its first table element, and
 each subsequent instance creates and defines a new table element in that array.
 The tables are inserted into the array in the order encountered.
@@ -942,23 +957,23 @@ of tables, inside the most recent table.
 
 ```toml
 [[fruits]]
-name = "apple"
+name = "apple" # the key, fruits, has a new element with key, name, holding string, "apple"
 
-[fruits.physical]  # subtable
+[fruits.physical]  # the new element has a key, physical, holding a table
 color = "red"
 shape = "round"
 
-[[fruits.varieties]]  # nested array of tables
-name = "red delicious"
+[[fruits.varieties]]  # the new element has a key, varieties, holding an array of tables
+name = "red delicious" # whose first entry is the table containing the key, name, holding the value, "red delicious"
 
 [[fruits.varieties]]
 name = "granny smith"
 
 
-[[fruits]]
+[[fruits]] # fruits array of tables has a new element
 name = "banana"
 
-[[fruits.varieties]]
+[[fruits.varieties]] # the new element has a key, varieties, holding array of tables
 name = "plantain"
 ```
 
@@ -989,7 +1004,7 @@ reverse that ordering must produce an error at parse time.
 
 ```
 # INVALID TOML DOC
-[fruit.physical]  # subtable, but to which parent element should it belong?
+[fruit.physical]  # sub table, but to which parent element should it belong?
 color = "red"
 shape = "round"
 
@@ -1033,7 +1048,7 @@ shape = "round"
 color = "green"
 ```
 
-You may also use inline tables where appropriate:
+You can also use inline tables where appropriate:
 
 ```toml
 points = [ { x = 1, y = 2, z = 3 },
